@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+
+@source '../js/**/*.vue';
+@source '../views/**/*.blade.php';
+
+@theme {
+    --font-sans: 'Nunito Sans', Helvetica, Arial, sans-serif;
+    --color-primary: #0275b3;
+    --color-primary-dark: #075985;
+    --color-primary-light: #e0f2fe;
+    --color-accent: #0ea5e9;
+    --color-neutral: #64748b;
+    --color-ink: #131920;
+    --color-ink-soft: #212529;
+    --color-muted: #6c757d;
+    --color-placeholder: #9c9ea1;
+    --color-line: #dee2e6;
+    --color-surface: #f3f6f9;
+    --color-th: #f5f6f7;
+    --color-ok: #16a34a;
+    --color-warn: #ffb020;
+    --color-danger: #e5484d;
+}
+
+html, body {
+    font-size: 13px;
+    color: var(--color-ink-soft);
+    background: var(--color-surface);
+}
+
+@layer components {
+    .s-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        white-space: nowrap;
+        transition: background-color .15s, color .15s, border-color .15s;
+        cursor: pointer;
+    }
+    .s-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .s-btn-primary { background: #0275b3; color: #fff; }
+    .s-btn-primary:hover:not(:disabled) { background: #075985; }
+    .s-btn-outline { border: 1px solid #0275b3; color: #0275b3; background: #fff; }
+    .s-btn-outline:hover:not(:disabled) { background: #e0f2fe; }
+    .s-btn-danger { border: 1px solid #e5484d; color: #e5484d; background: #fff; }
+    .s-btn-danger:hover:not(:disabled) { background: #fdecec; }
+
+    .s-input {
+        width: 100%;
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 13px;
+        background: #fff;
+        color: #212529;
+    }
+    .s-input::placeholder { color: #9c9ea1; }
+    .s-input:focus { outline: none; border-color: #0275b3; box-shadow: 0 0 0 2px rgb(0 157 255 / 15%); }
+    .s-input.is-invalid { border-color: #e5484d; }
+
+    .s-label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #131920; }
+    .s-error { margin-top: 3px; font-size: 12px; color: #e5484d; }
+    .s-card { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; }
+    .s-table { width: 100%; border-collapse: collapse; }
+    .s-table th { background: #f5f6f7; font-weight: 700; text-align: left; padding: 12px 14px; color: #131920; white-space: nowrap; }
+    .s-table td { padding: 10px 14px; border-bottom: 1px solid #edf0f2; vertical-align: middle; }
+    .s-table tbody tr:hover { background: #f8fbff; }
+    .s-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+}

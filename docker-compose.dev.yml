@@ -1,0 +1,171 @@
+name: invoix-panel
+
+services:
+  prepare:
+    image: alpine:3.21
+    restart: "no"
+    volumes:
+      - ./docker/caddy/sites:/sites
+    command:
+      - sh
+      - -c
+      - mkdir -p /sites && [ -f /sites/tenants.caddy ] || echo "# Generado por el panel." > /sites/tenants.caddy
+
+  caddy:
+    image: caddy:2
+    container_name: invoix-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - ./docker/caddy/sites:/etc/caddy/sites
+    networks: [invoix]
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+
+  mysql:
+    image: mysql:8.4
+    container_name: invoix-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE: panel
+      MYSQL_USER: panel
+      MYSQL_PASSWORD: panel
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootsecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks: [invoix]
+
+  redis:
+    image: redis:7-alpine
+    container_name: invoix-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [invoix]
+
+  panel:
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "true"
+    image: invoix-panel
+    container_name: invoix-panel
+    restart: unless-stopped
+    ports:
+      - "8095:8080"
+    environment: &app
+      APP_NAME: "Panel INVOIX"
+      APP_ENV: local
+      APP_KEY: "base64:2ZIVzQsA3XU6IEo5/40ZlqnQI+TPKGKf71HoxTWbvIo="
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8095
+      APP_TIMEZONE: America/Bogota
+      APP_LOCALE: es
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_DATABASE: panel
+      DB_USERNAME: panel
+      DB_PASSWORD: panel
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      REDIS_CACHE_DB: "0"
+      REDIS_PREFIX: panel-
+      QUEUE_CONNECTION: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: database
+      PANEL_DOMAIN: invoix.co
+      PANEL_ADMIN_EMAIL: support@invoix.co
+      PANEL_ADMIN_PASSWORD: "invoix2027!"
+      PANEL_WEBHOOK_SECRET: dev-webhook-secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+      INVOIX_IMAGE: "ghcr.io/sepineda1/invoix:latest"
+      TENANT_DATA_ROOT: /var/lib/invoix/tenants
+      TENANT_VOLUME: invoix_tenant_data
+      INVOIX_NETWORK: invoix
+      TENANT_DB_HOST: mysql
+      TENANT_REDIS_HOST: redis
+      CADDY_CONTAINER: invoix-caddy
+      CADDY_HOST: caddy
+      CADDY_SITES_PATH: /var/lib/invoix/caddy/tenants.caddy
+      CADDY_TLS: "off"
+      TENANT_HEALTH_MODE: internal
+      TENANT_HEALTH_TIMEOUT: "120"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - tenant_data:/var/lib/invoix/tenants
+      - ./docker/caddy/sites:/var/lib/invoix/caddy
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [invoix]
+
+  horizon:
+    image: invoix-panel
+    container_name: invoix-horizon
+    restart: unless-stopped
+    command: ["php", "artisan", "horizon"]
+    environment: *app
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - tenant_data:/var/lib/invoix/tenants
+      - ./docker/caddy/sites:/var/lib/invoix/caddy
+    depends_on:
+      panel:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [invoix]
+
+  scheduler:
+    image: invoix-panel
+    container_name: invoix-scheduler
+    restart: unless-stopped
+    command: ["php", "artisan", "schedule:work"]
+    environment: *app
+    volumes:
+      - tenant_data:/var/lib/invoix/tenants
+    depends_on:
+      panel:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [invoix]
+
+networks:
+  invoix:
+    name: invoix
+
+volumes:
+  mysql_data:
+  redis_data:
+  tenant_data:
+    name: invoix_tenant_data

@@ -1,0 +1,12 @@
+{
+	auto_https off
+}
+
+:80 {
+	@interno path /internal/*
+	respond @interno 404
+
+	reverse_proxy panel:8080
+}
+
+import /etc/caddy/sites/tenants.caddy

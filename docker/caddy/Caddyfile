@@ -1,0 +1,23 @@
+{
+	email {$ACME_EMAIL:ops@invoix.co}
+	on_demand_tls {
+		ask http://panel:8080/internal/caddy/ask
+	}
+}
+
+http://panel.{$PANEL_DOMAIN:invoix.co} {
+	redir https://panel.{$PANEL_DOMAIN:invoix.co}{uri} permanent
+}
+
+https://panel.{$PANEL_DOMAIN:invoix.co} {
+	@interno path /internal/*
+	respond @interno 404
+
+	reverse_proxy panel:8080
+}
+
+http://*.{$PANEL_DOMAIN:invoix.co} {
+	respond 404
+}
+
+import /etc/caddy/sites/tenants.caddy
