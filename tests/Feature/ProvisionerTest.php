@@ -98,13 +98,13 @@ it('aprovisiona con el doble de docker y separa redis por prefijo', function () 
         ->and($compose)->toContain('subpath: gogo/storage');
 
     $calls = array_values(array_filter($this->docker->calls, fn (array $call) => $call['file'] !== null));
-    $exec = array_values(array_filter($this->docker->calls, fn (array $call) => ($call['arguments'][0] ?? null) === 'exec'));
+    $exec = array_values(array_filter($this->docker->calls, fn (array $call) => ($call['arguments'][2] ?? null) === 'gogo-app'));
     expect($calls[0]['arguments'])->toBe(['pull'])
         ->and($calls[1]['arguments'])->toBe(['up', '-d', '--remove-orphans'])
         ->and($calls[0]['command'][0])->toBe('docker')
         ->and($calls[0]['command'])->not->toContain('gogo;rm')
-        ->and($exec[0]['arguments'])->toBe(['exec', 'gogo-app', 'chown', '-R', 'www-data:www-data', '/var/www/html/storage', '/var/www/html/bootstrap/cache'])
-        ->and($exec[1]['arguments'])->toBe(['exec', 'gogo-app', 'chmod', '-R', 'ug+rwx', '/var/www/html/storage', '/var/www/html/bootstrap/cache']);
+        ->and($exec[0]['arguments'])->toBe(['docker', 'exec', 'gogo-app', 'chown', '-R', 'www-data:www-data', '/var/www/html/storage', '/var/www/html/bootstrap/cache'])
+        ->and($exec[1]['arguments'])->toBe(['docker', 'exec', 'gogo-app', 'chmod', '-R', 'ug+rwx', '/var/www/html/storage', '/var/www/html/bootstrap/cache']);
 });
 
 it('reanuda sin crear otra base si el almacenamiento ya quedó listo', function () {

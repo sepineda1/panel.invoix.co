@@ -5,9 +5,6 @@ namespace App\Services\Tenants;
 use App\Models\Tenant;
 use App\Services\Docker\DockerClient;
 use App\Support\Slug;
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use RuntimeException;
 
 class TenantPermissions
@@ -24,8 +21,8 @@ class TenantPermissions
         $paths = ['/var/www/html/storage', '/var/www/html/bootstrap/cache'];
 
         foreach ([
-            ['exec', $container, 'chown', '-R', 'www-data:www-data', ...$paths],
-            ['exec', $container, 'chmod', '-R', 'ug+rwx', ...$paths],
+            ['docker', 'exec', $container, 'chown', '-R', 'www-data:www-data', ...$paths],
+            ['docker', 'exec', $container, 'chmod', '-R', 'ug+rwx', ...$paths],
         ] as $arguments) {
             $result = $this->docker->run($arguments);
             if (! $result->ok) {
