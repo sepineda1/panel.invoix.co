@@ -72,4 +72,7 @@ if [ -n "${ERP_ADMIN_EMAIL:-}" ] && [ -n "${ERP_ADMIN_PASSWORD:-}" ]; then
 fi
 flock -u 9
 
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R ug+rwx storage bootstrap/cache
+
 exec docker-php-entrypoint "$@"
