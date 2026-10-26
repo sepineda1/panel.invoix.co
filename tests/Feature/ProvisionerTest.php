@@ -9,6 +9,7 @@ use App\Services\Tenants\FakeHealthProbe;
 use App\Services\Tenants\HealthProbe;
 use App\Services\Tenants\Provisioner;
 use App\Services\Tenants\TenantFiles;
+use App\Services\Tenants\TenantMailSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -18,6 +19,14 @@ beforeEach(function () {
     mkdir($root.'/caddy', 0777, true);
 
     config([
+        'panel.mail' => [
+            'host' => 'smtp.invoix.co',
+            'port' => '587',
+            'username' => 'support@invoix.co',
+            'password' => 'clave secreta',
+            'from_address' => 'support@invoix.co',
+            'scheme' => '',
+        ],
         'panel.data_root' => $root.'/tenants',
         'panel.host_root' => $root.'/tenants',
         'panel.tenant_volume' => 'invoix_tenant_data',
@@ -74,6 +83,11 @@ it('aprovisiona con el doble de docker y separa redis por prefijo', function () 
         ->and($env)->toContain('APP_URL=https://gogo.invoix.co')
         ->and($env)->toContain('QUEUE_CONNECTION=redis')
         ->and($env)->toContain('ERP_ADMIN_EMAIL=ana@gogo.test')
+        ->and($env)->toContain('MAIL_MAILER=smtp')
+        ->and($env)->toContain('MAIL_HOST=smtp.invoix.co')
+        ->and($env)->toContain('MAIL_FROM_ADDRESS=support@invoix.co')
+        ->and($env)->toContain('MAIL_FROM_NAME=Gogo')
+        ->and($env)->toContain('MAIL_PASSWORD="clave secreta"')
         ->and($env)->not->toContain('DIAN');
 
     $compose = file_get_contents(app(TenantFiles::class)->composePath($tenant));
@@ -106,4 +120,22 @@ it('reanuda sin crear otra base si el almacenamiento ya quedó listo', function 
         ->and($tenant->fresh()->status->value)->toBe('running')
         ->and($tenant->fresh()->last_error)->toBeNull()
         ->and($this->health->calls)->toBe(['gogo']);
+});
+
+it('copia el correo del panel y reinicia la empresa que ya está en línea', function () {
+    config(['panel.mail.host' => '']);
+    $tenant = empresa([
+        'status' => 'running',
+        'database_password' => 'abcdefghijklmnopqrstuvwxyz012345',
+        'app_key' => 'base64:'.base64_encode(random_bytes(32)),
+        'image_ref' => 'ghcr.io/sepineda1/invoix:abc1234',
+    ]);
+    app(TenantFiles::class)->writeEnv($tenant);
+    app(TenantFiles::class)->writeCompose($tenant);
+
+    config(['panel.mail.host' => 'smtp.invoix.co']);
+
+    expect(app(TenantMailSync::class)->run())->toBe(1)
+        ->and(file_get_contents(app(TenantFiles::class)->envPath($tenant)))->toContain('MAIL_HOST=smtp.invoix.co')
+        ->and($this->docker->calls[0]['arguments'])->toBe(['up', '-d', '--force-recreate']);
 });

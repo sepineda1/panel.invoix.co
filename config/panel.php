@@ -42,4 +42,13 @@ return [
 
     'health_mode' => env('TENANT_HEALTH_MODE', 'public'),
 
+    'mail' => [
+        'host' => env('MAIL_HOST', ''),
+        'port' => env('MAIL_PORT', '587'),
+        'username' => env('MAIL_USERNAME', ''),
+        'password' => env('MAIL_PASSWORD', ''),
+        'from_address' => env('MAIL_FROM_ADDRESS', ''),
+        'scheme' => env('MAIL_SCHEME', ''),
+    ],
+
 ];

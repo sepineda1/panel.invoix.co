@@ -107,6 +107,13 @@ services:
       CADDY_HOST: caddy
       CADDY_SITES_PATH: /var/lib/invoix/caddy/tenants.caddy
       CADDY_TLS: on_demand
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_SCHEME: ${MAIL_SCHEME:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
       TENANT_HEALTH_MODE: public
       TENANT_HEALTH_TIMEOUT: "120"
     volumes:

@@ -43,6 +43,9 @@ exec 9>/tmp/panel-migrate.lock
 flock 9
 php artisan migrate --force --no-interaction
 php artisan db:seed --force --no-interaction
+if [ "${1:-web}" = "web" ]; then
+    php artisan panel:sync-mail --no-interaction || echo "No se pudo copiar el correo a las empresas."
+fi
 flock -u 9
 
 if [ "${1:-web}" = "web" ]; then

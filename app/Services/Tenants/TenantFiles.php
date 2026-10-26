@@ -69,7 +69,12 @@ class TenantFiles
 
         if ($tenant->admin_password) {
             $lines[] = $this->line('ERP_ADMIN_PASSWORD', (string) $tenant->admin_password);
+        } elseif (is_file($this->envPath($tenant))
+            && preg_match('/^ERP_ADMIN_PASSWORD=.*$/m', (string) file_get_contents($this->envPath($tenant)), $kept)) {
+            $lines[] = $kept[0];
         }
+
+        array_push($lines, ...$this->mailLines($tenant));
 
         $this->write($this->envPath($tenant), implode("\n", $lines)."\n", 0600);
     }
@@ -224,6 +229,38 @@ class TenantFiles
         }
 
         chmod($path, $mode);
+    }
+
+    /** @return list<string> */
+    private function mailLines(Tenant $tenant): array
+    {
+        $mail = config('panel.mail');
+        $host = is_array($mail) ? (string) ($mail['host'] ?? '') : '';
+
+        if ($host === '') {
+            return ['MAIL_MAILER=log'];
+        }
+
+        $from = (string) ($mail['from_address'] ?? '');
+        if ($from === '') {
+            $from = (string) ($mail['username'] ?? '');
+        }
+
+        $lines = ['MAIL_MAILER=smtp'];
+        $scheme = (string) ($mail['scheme'] ?? '');
+        if ($scheme !== '') {
+            $lines[] = $this->line('MAIL_SCHEME', $scheme);
+        }
+
+        return [
+            ...$lines,
+            $this->line('MAIL_HOST', $host),
+            $this->line('MAIL_PORT', (string) ($mail['port'] ?? '587')),
+            $this->line('MAIL_USERNAME', (string) ($mail['username'] ?? '')),
+            $this->line('MAIL_PASSWORD', (string) ($mail['password'] ?? '')),
+            $this->line('MAIL_FROM_ADDRESS', $from),
+            $this->line('MAIL_FROM_NAME', $tenant->name),
+        ];
     }
 
     private function line(string $key, string $value): string
