@@ -17,6 +17,7 @@ class TenantActions
         private readonly CaddySites $caddy,
         private readonly DatabaseProvisioner $databases,
         private readonly OperationLogger $logger,
+        private readonly TenantPermissions $permissions,
     ) {}
 
     public function restart(Tenant $tenant, ?int $operatorId): void
@@ -26,6 +27,7 @@ class TenantActions
         try {
             $this->compose($tenant, ['restart']);
             $this->health->waitUntilUp($tenant->slug, (int) config('panel.health_timeout'));
+            $this->permissions->grant($tenant);
             $tenant->forceFill(['status' => TenantStatus::Running, 'last_error' => null])->save();
             $this->logger->succeed($operation, 'Contenedores reiniciados.');
         } catch (Throwable $e) {
@@ -54,6 +56,7 @@ class TenantActions
         try {
             $this->compose($tenant, ['up', '-d', '--remove-orphans']);
             $this->health->waitUntilUp($tenant->slug, (int) config('panel.health_timeout'));
+            $this->permissions->grant($tenant);
             $tenant->forceFill(['status' => TenantStatus::Running, 'last_error' => null])->save();
             $this->caddy->sync();
             $this->logger->succeed($operation, 'Contenedores en línea.');

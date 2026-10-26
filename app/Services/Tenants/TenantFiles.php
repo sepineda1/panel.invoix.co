@@ -4,6 +4,9 @@ namespace App\Services\Tenants;
 
 use App\Models\Tenant;
 use App\Support\ImageRef;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use RuntimeException;
 
 class TenantFiles
@@ -94,6 +97,8 @@ class TenantFiles
                 throw new RuntimeException('No se pudo crear el almacenamiento.');
             }
         }
+
+        $this->grantWebUser($this->storagePath($tenant));
     }
 
     public function writeCompose(Tenant $tenant): void
@@ -207,6 +212,29 @@ class TenantFiles
             '    volumes:',
             '      - '.$source.':/var/www/html/storage',
         ];
+    }
+
+    private function grantWebUser(string $storage): void
+    {
+        $paths = [$storage];
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($storage, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        foreach ($iterator as $item) {
+            $paths[] = $item->getPathname();
+        }
+
+        foreach ($paths as $path) {
+            $directory = is_dir($path);
+            @chmod($path, $directory ? 0775 : 0664);
+            if (@chown($path, 33) && @chgrp($path, 33)) {
+                continue;
+            }
+
+            @chmod($path, $directory ? 0777 : 0666);
+        }
     }
 
     private function ensureRoot(Tenant $tenant): void

@@ -18,6 +18,7 @@ class FleetUpdater
         private readonly TenantFiles $files,
         private readonly CaddySites $caddy,
         private readonly OperationLogger $logger,
+        private readonly TenantPermissions $permissions,
     ) {}
 
     public function run(string $image, ?int $operatorId): void
@@ -73,6 +74,7 @@ class FleetUpdater
             }
 
             $this->health->waitUntilUp($tenant->slug, (int) config('panel.health_timeout'));
+            $this->permissions->grant($tenant);
 
             $tenant->forceFill([
                 'status' => TenantStatus::Running,

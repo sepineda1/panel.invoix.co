@@ -21,6 +21,7 @@ class Provisioner
         private readonly Secrets $secrets,
         private readonly PublishedImage $images,
         private readonly OperationLogger $logger,
+        private readonly TenantPermissions $permissions,
     ) {}
 
     public function run(Tenant $tenant, ?int $operatorId): void
@@ -134,6 +135,7 @@ class Provisioner
     private function health(Tenant $tenant): string
     {
         $this->health->waitUntilUp($tenant->slug, (int) config('panel.health_timeout'));
+        $this->permissions->grant($tenant);
 
         return $tenant->app_url.'/up respondió 200.';
     }

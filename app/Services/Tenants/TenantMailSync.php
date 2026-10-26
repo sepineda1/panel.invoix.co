@@ -12,6 +12,7 @@ class TenantMailSync
     public function __construct(
         private readonly TenantFiles $files,
         private readonly DockerClient $docker,
+        private readonly TenantPermissions $permissions,
     ) {}
 
     public function run(): int
@@ -56,6 +57,8 @@ class TenantMailSync
         if (! $result->ok) {
             throw new RuntimeException('No se pudo reiniciar '.$tenant->slug.' para aplicar el correo: '.$result->output);
         }
+
+        $this->permissions->grant($tenant);
 
         return true;
     }
